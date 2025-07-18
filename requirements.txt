@@ -1,0 +1,9 @@
+colorzero==2.0
+gpiozero==2.0.1
+lgpio==0.2.2.0
+mpu6050-raspberrypi==1.2
+numpy==2.3.1
+pygame==2.6.1
+pyserial==3.5
+RPi.GPIO==0.7.1
+smbus==1.1.post2
