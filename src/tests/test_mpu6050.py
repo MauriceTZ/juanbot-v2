@@ -14,7 +14,7 @@ def read_sensor_data():
 
     # Read temp
     temperature = mpu6050.get_temp()
-    # mpu6050.|
+    # mpu6050.
 
     return accelerometer_data, gyroscope_data, temperature
 
