@@ -1,33 +1,96 @@
-import mpu6050
-import time
+__author__ = 'Majid Alekasir' # majid.alekasir@gmail.com
 
-# Create a new Mpu6050 object
-mpu6050 = mpu6050.mpu6050(0x68)
+### Some changes are applied to the original library by 'Geir Istad' ###
+### The changes aim to enhance the results of *roll-pitch-yaw* and *linear acceleration* ###
+### Some changes are made for the ease of use ###
+### You need to install 'Scipy library' which is used in 'DMP_get_roll_pitch_yaw' function. The former function was not accurate and was giving improper results ###
 
-# Define a function to read the sensor data
-def read_sensor_data():
-    # Read the accelerometer values
-    accelerometer_data = mpu6050.get_accel_data()
+"""
+MPU6050 Python I2C Class - MPU6050 example usage
+Copyright (c) 2015 Geir Istad
 
-    # Read the gyroscope values
-    gyroscope_data = mpu6050.get_gyro_data()
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    # Read temp
-    temperature = mpu6050.get_temp()
-    # mpu6050.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-    return accelerometer_data, gyroscope_data, temperature
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
 
-# Start a while loop to continuously read the sensor data
-while True:
+from mpu6050 import MPU6050
 
-    # Read the sensor data
-    accelerometer_data, gyroscope_data, temperature = read_sensor_data()
+i2c_bus = 1
+device_address = 0x68
+freq_divider = 0x01
+### DMP output frequency is calculated easily using this equation: (200Hz / (1 + value))
+### For example, 0x04 gives (200Hz / (1 + 4)) = 40HZ
+### I propose 0x04 for a less noisy quaternion and 0x01 for accelerometer & gyrometer.
 
-    # Print the sensor data
-    print("Accelerometer data:", accelerometer_data)
-    print("Gyroscope data:", gyroscope_data)
-    print("Temp:", temperature)
+# Make an MPU6050
+mpu = MPU6050(i2c_bus, device_address, freq_divider,
+              a_xAOff=1870, a_yAOff=1893, a_zAOff=15239,
+a_xGOff=-59, a_yGOff=85, a_zGOff=-48)
 
-    # Wait for 1 second
-    time.sleep(1)
+# Initiate your DMP
+mpu.dmp_initialize()
+mpu.set_DMP_enabled(True)
+
+packet_size = mpu.DMP_get_FIFO_packet_size()
+FIFO_buffer = [0]*64
+
+g = 9.8 # gravity acceleration (m/s^2)
+
+### PLEASE NOTE THAT IF YOU DON'T READ THE DMP DATA ON TIME, IT CAUSES OVERFLOW ###
+### THE OVERFLOW CAUSES SEVERE REDUCE IN SPEED ###
+while True: # infinite loop
+    if mpu.isreadyFIFO(packet_size): # Check if FIFO data are ready to use...
+        
+        FIFO_buffer = mpu.get_FIFO_bytes(packet_size) # get all the DMP data here
+
+        ### The full range of accelerometer is set to [-2g, +2g]. ###
+        ### The transformations in this code are based on this range ###
+
+        # raw acceleration
+        accel = mpu.get_acceleration()
+        Ax = accel.x * 2*g / 2**15
+        Ay = accel.y * 2*g / 2**15
+        Az = accel.z * 2*g / 2**15
+
+        # DMP acceleration (less noisy acceleration - based on fusion)
+        accel_dmp = mpu.DMP_get_acceleration_int16(FIFO_buffer)
+        Ax_dmp = accel_dmp.x * 2*g / 2**15 * 2
+        Ay_dmp = accel_dmp.y * 2*g / 2**15 * 2
+        Az_dmp = accel_dmp.z * 2*g / 2**15 * 2
+
+        # raw gyro (full range: [-250, +250]) (unit: degree / second)
+        gyro = mpu.get_rotation()
+        Gx = gyro.x * 250 / 2**15
+        Gy = gyro.y * 250 / 2**15
+        Gz = gyro.z * 250 / 2**15
+        
+
+        print('Ax: ' + str(Ax))
+        print('Ay: ' + str(Ay))
+        print('Az: ' + str(Az))
+        print('Gx: ' + str(Gx))
+        print('Gy: ' + str(Gy))
+        print('Gz: ' + str(Gz))
+        print('\n')
+
+        ### About transformations ###
+        # We have a 16 bit signed number for accelerometer. Thus the range of this number is [-2^15, +2^15]
+        # The range of the accelerometer is [-2g, +2g].
+        # The ranges are adjustable for accelerometer and gyrometer (in MPU6050 library).
+
+        # You can use RAW or DMP acceleration.
