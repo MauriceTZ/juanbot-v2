@@ -1,2 +1,0 @@
-a_xAOff=1870, a_yAOff=1893, a_zAOff=15239,
-a_xGOff=-59, a_yGOff=85, a_zGOff=-48

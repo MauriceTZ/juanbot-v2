@@ -1,0 +1,4 @@
+    freq = 1.2 # 1.2
+    BALANCEO = 0.105 # 0.105
+    ZANCADA = 0.12 # 0.09
+    BRACEO = 0.3 # 0.3
