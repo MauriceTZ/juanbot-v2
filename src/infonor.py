@@ -1,9 +1,15 @@
 import time
+import pygame as pg
 import numpy as np
 from adafruit_servokit import ServoKit
 import gpiozero
 import readchar
 import atexit
+from IK import Pierna
+
+pg.init()
+clock = pg.time.Clock()
+
 
 kit = ServoKit(channels=16, address=0x40)
 
@@ -16,31 +22,37 @@ for i in range(16):
 
 def chau(kit: ServoKit):
     print("APAGANDO SERVOS...")
+    kit.servo[0].angle = 90
+    kit.servo[4].angle = 90
     # for i in range(16):
     #     kit.servo[i].angle = 90
-    time.sleep(0.5)
-    for i in range(16):
-        kit.servo[i].angle = None
+    # time.sleep(0.5)
+    # for i in range(16):
+    #     kit.servo[i].angle = None
 
 
+pierna_izq = Pierna(8, 6.4,
+                    kit.servo[3], kit.servo[2], kit.servo[1], kit.servo[0])
+pierna_der = Pierna(8, 6.4,
+                    kit.servo[7], kit.servo[6], kit.servo[5], kit.servo[4], False, False, False, False)
 atexit.register(chau, kit)
 
 while True:
-    kit.servo[3].angle = 80  # cadera izq
-    kit.servo[2].angle = 90  # rodilla izq
-    kit.servo[1].angle = 90  # tobillo izq
-    kit.servo[0].angle = 90  # pie izq
+    # kit.servo[3].angle = 80  # cadera izq
+    # kit.servo[2].angle = 90  # rodilla izq
+    # kit.servo[1].angle = 90  # tobillo izq
+    # kit.servo[0].angle = 90  # pie izq
 
-    kit.servo[7].angle = 100  # cadera der
-    kit.servo[6].angle = 90  # rodilla der
-    kit.servo[5].angle = 90  # tobillo der
-    kit.servo[4].angle = 90  # pie der
+    # kit.servo[7].angle = 100  # cadera der
+    # kit.servo[6].angle = 90  # rodilla der
+    # kit.servo[5].angle = 90  # tobillo der
+    # kit.servo[4].angle = 90  # pie der
 
-    kit.servo[13].angle = 90  # hombro izq
-    kit.servo[12].angle = 40  # brazo izq
+    # kit.servo[13].angle = 90  # hombro izq
+    # kit.servo[12].angle = 40  # brazo izq
 
-    kit.servo[14].angle = 90  # hombro der
-    kit.servo[11].angle = 180-40  # brazo der
+    # kit.servo[14].angle = 90  # hombro der
+    # kit.servo[11].angle = 180-40  # brazo der
 
     servos = [
         kit.servo[3],  # cadera izq  (0)
@@ -63,53 +75,74 @@ while True:
     Y = np.zeros(shape=len(servos))
     start = time.time()
     t = 0
-    freq = 0.25  # 1.2
-    BALANCEO = 0.1  # 0.105
-    ZANCADA = 0.1  # 0.09
-    BRACEO = 0.3  # 0.3
-    SENTADILLA = 0.3
+    freq = 0.2  # 1.2
+    BALANCEO = 17  # 0.2  # 0.105
+    ZANCADA = 2  # 0.2  # 0.09
+    SENTADILLA = 0.4
     RESORTE = 0.1
 
     INCLINACION = 0.1
+    dt = 0
     while True:
+        t = time.time() - start
+        fase = t*freq*2*np.pi
+        print(f"{t = }")
+
+        pierna_izq.angulos(ZANCADA * np.cos(fase),
+                           13 + np.sin(fase),
+                           a=7,
+                           p=(BALANCEO*1.3)*np.sin(fase) - 35*np.sin(fase/2)**10)
+        pierna_der.angulos(-ZANCADA * np.cos(fase),
+                           13 - np.sin(fase),
+                           a=7,
+                           p=-BALANCEO*np.sin(fase) - 35*np.cos(fase/2)**10)
+        dt = clock.tick(100) / 1000
         # char = readchar.readkey()
         # t += (1/40) * (char == readchar.key.RIGHT)
         # t -= (1/40) * (char == readchar.key.LEFT)
         # if char: print(t)
-        t = time.time() - start
-        print(t)
-        Y[:] = 0
+        # Y[:] = 0
 
         # Cálculos...
-        fase = t*freq*2*np.pi
-        Y[0] -= SENTADILLA + 0.2 + np.sin(fase) * RESORTE
-        Y[4] += SENTADILLA + 0.2 - np.sin(fase) * RESORTE
+        # fase = t*freq*2*np.pi
+        # kit.servo[0].angle = 90+20
+        # kit.servo[4].angle = 90+16
+        # for x in np.linspace(0, -2, 50):
+        #     pierna_izq.angulos(-2, 13)
+        #     pierna_der.angulos(-2, 13+x)
+        #     clock.tick(50)
+        # for x in np.linspace(0, ZANCADA, 50):
+        #     pierna_izq.angulos(-2, 13)
+        #     pierna_der.angulos(-2+x, 11)
+        #     clock.tick(50)
+        # for x in np.linspace(0, 2, 50):
+        #     pierna_izq.angulos(-2, 13)
+        #     pierna_der.angulos(-2+ZANCADA, 11+x)
+        #     clock.tick(50)
+        # kit.servo[0].angle = 90
+        # kit.servo[4].angle = 90
+        # for x in np.linspace(0, -ZANCADA, 50):
+        #     pierna_izq.angulos(-2, 13)
+        #     pierna_der.angulos(-2+ZANCADA+x, 13)
+        #     clock.tick(50)
 
-        Y[1] += SENTADILLA * 2 + np.sin(fase) * RESORTE * 2
-        Y[5] -= SENTADILLA * 2 - np.sin(fase) * RESORTE * 2
-
-        Y[2] += SENTADILLA + np.sin(fase) * RESORTE
-        Y[6] -= SENTADILLA - np.sin(fase) * RESORTE
-
-        Y[3] -= np.cos(fase)*(BALANCEO * 1.1)
-        Y[7] -= np.cos(fase)*(BALANCEO)
-
-        # Y[0] += np.sin(fase)*(ZANCADA)
-        # Y[4] += np.sin(fase)*(ZANCADA)
-
-        # Y[1] += np.cos(fase)*(ZANCADA)
-        # Y[5] -= np.cos(fase)*(ZANCADA)
-
-        # # Y[9] = Y[11] = -0.7
-        # Y[8] -= np.sin(fase)*(BRACEO)
-        # Y[10] -= np.sin(fase)*(BRACEO)
-
-        print(Y)
-
-        for i, (s, y) in enumerate(zip(servos, Y)):
-            if np.isnan(y):
-                s.angle = None
-            else:
-                s.angle = (y+1) * 90
-        time.sleep(1/50)
-    time.sleep(0.5)
+        # kit.servo[0].angle = 90-20
+        # kit.servo[4].angle = 90-16
+        # for x in np.linspace(0, -2, 50):
+        #     pierna_der.angulos(-2, 13)
+        #     pierna_izq.angulos(-2, 13+x)
+        #     clock.tick(50)
+        # for x in np.linspace(0, ZANCADA, 50):
+        #     pierna_der.angulos(-2, 13)
+        #     pierna_izq.angulos(-2+x, 11)
+        #     clock.tick(50)
+        # for x in np.linspace(0, 2, 50):
+        #     pierna_der.angulos(-2, 13)
+        #     pierna_izq.angulos(-2+ZANCADA, 11+x)
+        #     clock.tick(50)
+        # kit.servo[0].angle = 90
+        # kit.servo[4].angle = 90
+        # for x in np.linspace(0, -ZANCADA, 50):
+        #     pierna_der.angulos(-2, 13)
+        #     pierna_izq.angulos(-2+ZANCADA+x, 13)
+        #     clock.tick(50)
