@@ -7,7 +7,9 @@ for i in range(16):
     kit.servo[i].angle = None
 
 while True:
-    pin, angulo = input("Pin y angulo: ").split()
-    pin = int(pin)
-    angulo = int(angulo)
+    pin, angulo = input("(pin, angulo): ").split(",")
+    pin = int(pin.strip())
+    angulo = int(angulo.strip())
+    if angulo < 0: angulo = None
+    print(f"Pin = {pin}, Ángulo = {angulo}")
     kit.servo[pin].angle = angulo

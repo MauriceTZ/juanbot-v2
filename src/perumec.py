@@ -5,13 +5,14 @@ import gpiozero
 import readchar
 import atexit
 
-kit = ServoKit(channels=16, address=0x41)
+kit = ServoKit(channels=16)
 
 MIN_IMP = 500
 MAX_IMP = 2500
 
 for i in range(16):
     kit.servo[i].set_pulse_width_range(MIN_IMP, MAX_IMP)
+
 
 def chau(kit: ServoKit):
     print("APAGANDO SERVOS...")
@@ -59,18 +60,18 @@ while True:
     ]
 
     print("ESPERANDO BOTON...")
-    button.wait_for_active(timeout=None)
+    # button.wait_for_active(timeout=None)
     print("EJECUTANDO!!")
     time.sleep(0.05)
 
     Y = np.zeros(shape=len(servos))
     start = time.time()
     t = 0
-    freq = 1.0 # 1.2
-    BALANCEO = 0.115 # 0.105
-    ZANCADA = 0.1 # 0.09
-    BRACEO = 0.3 # 0.3
-    
+    freq = 1.0  # 1.2
+    BALANCEO = 0.115  # 0.105
+    ZANCADA = 0.1  # 0.09
+    BRACEO = 0.3  # 0.3
+
     INCLINACION = 0.1
     while not button.value:
         # char = readchar.readkey()
