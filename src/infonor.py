@@ -67,15 +67,17 @@ pierna_der = Pierna(8, 6.4,
                     kit.servo[0], kit.servo[1], kit.servo[2], kit.servo[3], False, False, False, False)
 atexit.register(chau, kit)
 
+
 def caminar(pierna_izq, pierna_der, BALANCEO, ZANCADA, fase):
     pierna_izq.angulos(ZANCADA * np.cos(fase),
-                           12 + np.sin(fase),
-                           a=4,
-                           p=(BALANCEO)*np.sin(fase) - 30*np.sin(fase/2)**10 - 4)
+                       12 + np.sin(fase),
+                       a=4,
+                       p=(BALANCEO)*np.sin(fase) - 30*np.sin(fase/2)**10 - 4)
     pierna_der.angulos(-ZANCADA * np.cos(fase),
-                           12 - np.sin(fase),
-                           a=4,
-                           p=-BALANCEO*np.sin(fase) - 30*np.cos(fase/2)**10)
+                       12 - np.sin(fase),
+                       a=4,
+                       p=-BALANCEO*np.sin(fase) - 30*np.cos(fase/2)**10)
+
 
 while True:
     start_time = time.time()
@@ -117,7 +119,7 @@ while True:
                     fase = -t*freq*2*np.pi
                     caminar(pierna_izq, pierna_der, BALANCEO, ZANCADA, fase)
                     dt = clock.tick(FPS) / 1000
-            elif hat[0] > 0: # Giro hacia la derecha
+            elif hat[0] > 0:  # Giro hacia la derecha
                 pierna_der.s4.angle = 85
                 time.sleep(0.5)
                 pierna_izq.angulos(-ZANCADA, 12)
@@ -128,7 +130,7 @@ while True:
                     caminar(pierna_izq, pierna_der, BALANCEO, ZANCADA, fase)
                     dt = clock.tick(FPS) / 1000
 
-            elif hat[0] < 0: # Giro hacia la izquierda
+            elif hat[0] < 0:  # Giro hacia la izquierda
                 for t in np.arange(0, 0.5/freq, 1/FPS):
                     fase = t*freq*2*np.pi
                     caminar(pierna_izq, pierna_der, BALANCEO, ZANCADA, fase)
@@ -138,8 +140,6 @@ while True:
                 time.sleep(0.5)
                 caminar(pierna_izq, pierna_der, BALANCEO, ZANCADA, 0)
                 time.sleep(0.5)
-
-
 
         dt = clock.tick(FPS) / 1000
         # char = readchar.readkey()
