@@ -41,7 +41,7 @@ def main():
 
     # This dict can be left as-is, since pygame will generate a
     # pygame.JOYDEVICEADDED event for every joystick connected
-    # at the start of the program.
+    # at the start of the programd.
     joysticks = {}
 
     done = False

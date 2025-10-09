@@ -10,6 +10,7 @@ while True:
     pin, angulo = input("(pin, angulo): ").split(",")
     pin = int(pin.strip())
     angulo = int(angulo.strip())
-    if angulo < 0: angulo = None
+    if angulo < 0:
+        angulo = None
     print(f"Pin = {pin}, Ángulo = {angulo}")
     kit.servo[pin].angle = angulo
