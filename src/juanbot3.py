@@ -49,12 +49,12 @@ MIN_IMP = 500
 MAX_IMP = 2500
 
 Zancada = 1  # cm
-Balanceo = 12  # grados
+Balanceo = 8  # grados
 Altura = 12  # cm
-Periodo = 5  # seg
+Periodo = 0.5  # seg
 
-Acel_Brazo = 60
-Pot_Balanceo = 0.5
+Acel_Brazo = 90
+Pot_Balanceo = 0.3
 
 FPS = 30
 dt = 0
@@ -111,70 +111,71 @@ while True:
             kit.servo[11].angle = 90 - brazo_izq[0]
 
             # print(f"{brazo_izq}, {brazo_der}")
+            # print(pierna_izq, pierna_der)
             hat = joystick.get_hat(0)
             if hat[1] == 1:
                 if estado == "parado":
                     estado = "empieza_caminar"
                     for t, b in zip(np.linspace(0, radians(90), int(FPS * Periodo)),
-                                    np.linspace(0, 1, int(FPS * Periodo))):
+                                    np.linspace(0, 1, int(FPS * Periodo))**Pot_Balanceo):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo * -2)
+                                           p=map_range(b, 0, 1, 0, -2) * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo)
+                                           p=map_range(b, 0, 1, 0, 1) * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "empieza_caminar" or estado == "caminando_izq":
                     estado = "caminando_der"
                     for t, b in zip(np.linspace(radians(90), radians(-90), int(FPS * Periodo)),
-                                    np.linspace(0, 1, int(FPS * Periodo))):
+                                    np.linspace(0, 1, int(FPS * Periodo))**Pot_Balanceo):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo)
+                                           p=map_range(b, 0, 1, -2, 1) * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo * -2)
+                                           p=map_range(b, 0, 1, 1, -2) * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_der":
                     estado = "caminando_izq"
                     for t, b in zip(np.linspace(radians(-90), radians(90), int(FPS * Periodo)),
-                                    np.linspace(0, 1, int(FPS * Periodo))):
+                                    np.linspace(0, 1, int(FPS * Periodo))**Pot_Balanceo):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo * -2)
+                                           p=map_range(b, 0, 1, 1, -2) * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo)
+                                           p=map_range(b, 0, 1, -2, 1) * Balanceo)
                         dt = clock.tick(FPS) / 1000
             elif hat[1] == 0:
                 if estado == "empieza_caminar":
                     estado = "parado"
                     for t, b in zip(np.linspace(radians(90), 0, int(FPS * Periodo)),
-                                    np.linspace(0, 1, int(FPS * Periodo))):
+                                    np.linspace(0, 1, int(FPS * Periodo))**(Pot_Balanceo*4)):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo)
+                                           p=map_range(b, 0, 1, -2, 1) * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo * -2)
+                                           p=map_range(b, 0, 1, 1, -2) * Balanceo)
                         dt = clock.tick(FPS) / 1000
-                    for _ in range(10):
-                        pierna_der.angulos(0, Altura)
-                        pierna_izq.angulos(0, Altura)
+                    for b in np.linspace(0, 1, int(FPS * Periodo))**(Pot_Balanceo*4):
+                        pierna_der.angulos(0, Altura, p=map_range(b, 0, 1, 1, 0) * Balanceo)
+                        pierna_izq.angulos(0, Altura, p=map_range(b, 0, 1, -2, 0) * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_der":
                     estado = "parado"
                     for t, b in zip(np.linspace(radians(90), 0, int(FPS * Periodo)),
-                                    np.linspace(0, 1, int(FPS * Periodo))):
+                                    np.linspace(0, 1, int(FPS * Periodo))**(Pot_Balanceo*4)):
                         pierna_der.angulos(-Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo * -2)
+                                           p=map_range(b, 0, 1, 1, -2) * Balanceo)
                         pierna_izq.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=b**Pot_Balanceo * Balanceo)
+                                           p=map_range(b, 0, 1, -2, 1) * Balanceo)
                         dt = clock.tick(FPS) / 1000
-                    for _ in range(10):
-                        pierna_der.angulos(0, Altura)
+                    for b in np.linspace(0, 1, int(FPS * Periodo))**(Pot_Balanceo*4):
+                        pierna_der.angulos(0, Altura, p=map_range(b, 0, 1, )) #############
                         pierna_izq.angulos(0, Altura)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_izq":
