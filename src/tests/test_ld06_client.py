@@ -1,4 +1,4 @@
-import serial
+import socket
 import numpy as np
 
 crc_table = [0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3, 0xae, 0xf2, 0xbf, 0x68, 0x25, 0x8b, 0xc6, 0x11, 0x5c, 0xa9, 0xe4, 0x33,
@@ -19,8 +19,14 @@ crc_table = [0x00, 0x4d, 0x9a, 0xd7, 0x79, 0x34, 0xe3, 0xae, 0xf2, 0xbf, 0x68, 0
 START_CHARACTER = bytes((0x54,))
 DATA_LENGTH_MASK = 0x1F
 
-ld06 = serial.Serial(port='/dev/ttyUSB0',
-                     baudrate=230400)
+SERVER_ADDRESS = input("Ingrese dirección del servidor (ipaddress, puerto): ").split(",")
+SERVER_ADDRESS[0] = SERVER_ADDRESS[0].strip()
+SERVER_ADDRESS[1] = int(SERVER_ADDRESS[1].strip())
+SERVER_ADDRESS = tuple(SERVER_ADDRESS)
+print(f"Tratando de conectarse a {SERVER_ADDRESS} ...")
+
+ld06 = socket.socket()
+ld06.connect(SERVER_ADDRESS)
 
 def read_packet(START_CHARACTER, DATA_LENGTH_MASK, ld06):
     measure_data: list[int, int] = []

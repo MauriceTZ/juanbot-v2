@@ -47,7 +47,8 @@ class Pierna:
 
         if self.s4.angle is None:
             self.s4.angle = 90
-        self.s4.angle += ((90 + (-1)**(not self.d4) * p + self.o4) - self.s4.angle) * 0.3
+        # self.s4.angle += ((90 + (-1)**(not self.d4) * p + self.o4) - self.s4.angle) * 0.2
+        self.s4.angle = (-1)**(not self.d4) * p + self.o4 + 90
 
         return q1, q2
 

@@ -48,16 +48,19 @@ kit = ServoKit(channels=16, address=0x40)
 MIN_IMP = 500
 MAX_IMP = 2500
 
-Zancada = 2  # cm
-Balanceo = 8  # grados
-Altura = 12 # cm
-Periodo = 1  # seg
+Zancada = 1  # cm
+Balanceo = 12  # grados
+Altura = 12  # cm
+Periodo = 5  # seg
+
+Acel_Brazo = 60
+Pot_Balanceo = 0.5
 
 FPS = 30
 dt = 0
 
-brazo_der = [0, 0]
-brazo_izq = [0, 0]
+brazo_der = [90, 0]
+brazo_izq = [90, 0]
 
 estado = "parado"
 
@@ -70,12 +73,12 @@ def chau(kit: ServoKit):
     pg.quit()
 
 
-pierna_izq = Pierna(8, 6.4,
+pierna_izq = Pierna(6.755, 6.361,
                     kit.servo[4], kit.servo[5], kit.servo[6], kit.servo[7], False, False, False, True,
-                    o4=3, xoff=0.5, yoff=0)
-pierna_der = Pierna(8, 6.4,
+                    o4=5, xoff=0, yoff=0)
+pierna_der = Pierna(6.648, 6.268,
                     kit.servo[0], kit.servo[1], kit.servo[2], kit.servo[3], False, False, False, False,
-                    o4=-12.5, xoff=1.5, yoff=-0.2)
+                    o4=-10, xoff=0, yoff=-0.41)
 
 atexit.register(chau, kit)
 
@@ -95,86 +98,100 @@ while True:
             axis3 = joystick.get_axis(3)
             axis4 = joystick.get_axis(4)
 
-            brazo_der[0] += axis1 * (abs(axis1) > 0.1) * dt * 10
-            brazo_der[1] += axis2 * (abs(axis2) > 0.1) * dt * 10
-            brazo_izq[0] += axis3 * (abs(axis3) > 0.1) * dt * 10
-            brazo_izq[1] += axis4 * (abs(axis4) > 0.1) * dt * 10
+            brazo_izq[0] += axis1 * (abs(axis1) > 0.1) * dt * Acel_Brazo
+            brazo_izq[1] += axis2 * (abs(axis2) > 0.1) * dt * Acel_Brazo
+            brazo_der[0] += axis3 * (abs(axis3) > 0.1) * dt * Acel_Brazo
+            brazo_der[1] += axis4 * (abs(axis4) > 0.1) * dt * Acel_Brazo
 
-            # brazo_der = [np.clip(a + 90, 0, 180) for a in brazo_der]
-            # brazo_izq = [np.clip(a + 90, 0, 180) for a in brazo_izq]
-            kit.servo[9].angle = 90 + brazo_der[0]
+            brazo_der = np.clip(brazo_der, -90, 90)
+            brazo_izq = np.clip(brazo_izq, -90, 90)
 
-            print(f"{brazo_der}, {brazo_izq}")
+            kit.servo[9].angle = 90 + brazo_izq[1]
+            kit.servo[8].angle = 90 + brazo_der[1]
+            kit.servo[11].angle = 90 - brazo_izq[0]
 
+            # print(f"{brazo_izq}, {brazo_der}")
             hat = joystick.get_hat(0)
             if hat[1] == 1:
                 if estado == "parado":
                     estado = "empieza_caminar"
-                    for t in np.linspace(0, radians(90), int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(0, radians(90), int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "empieza_caminar" or estado == "caminando_izq":
                     estado = "caminando_der"
-                    for t in np.linspace(radians(90), radians(-90), int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(radians(90), radians(-90), int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_der":
                     estado = "caminando_izq"
-                    for t in np.linspace(radians(-90), radians(90), int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(radians(-90), radians(90), int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         dt = clock.tick(FPS) / 1000
             elif hat[1] == 0:
                 if estado == "empieza_caminar":
                     estado = "parado"
-                    for t in np.linspace(radians(90), 0, int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(radians(90), 0, int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         dt = clock.tick(FPS) / 1000
-                    pierna_der.angulos(0, Altura)
-                    pierna_izq.angulos(0, Altura)
+                    for _ in range(10):
+                        pierna_der.angulos(0, Altura)
+                        pierna_izq.angulos(0, Altura)
+                        dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_der":
                     estado = "parado"
-                    for t in np.linspace(radians(90), 0, int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(radians(90), 0, int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(-Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         pierna_izq.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         dt = clock.tick(FPS) / 1000
-                    pierna_der.angulos(0, Altura)
-                    pierna_izq.angulos(0, Altura)
+                    for _ in range(10):
+                        pierna_der.angulos(0, Altura)
+                        pierna_izq.angulos(0, Altura)
+                        dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_izq":
                     estado = "parado"
-                    for t in np.linspace(radians(90), 0, int(FPS * Periodo)):
+                    for t, b in zip(np.linspace(radians(90), 0, int(FPS * Periodo)),
+                                    np.linspace(0, 1, int(FPS * Periodo))):
                         pierna_der.angulos(Zancada * sin(t),
                                            Altura,
-                                           p=Balanceo)
+                                           p=b**Pot_Balanceo * Balanceo)
                         pierna_izq.angulos(Zancada * -sin(t),
                                            Altura,
-                                           p=Balanceo * -2)
+                                           p=b**Pot_Balanceo * Balanceo * -2)
                         dt = clock.tick(FPS) / 1000
-                    pierna_der.angulos(0, Altura)
-                    pierna_izq.angulos(0, Altura)
+                    for _ in range(10):
+                        pierna_der.angulos(0, Altura)
+                        pierna_izq.angulos(0, Altura)
+                        dt = clock.tick(FPS) / 1000
 
         # pierna_der.angulos(0, Altura)
         # pierna_izq.angulos(0, Altura)
