@@ -1,2 +1,2 @@
-source /home/josem/Desktop/juanbot-v2/.venv/bin/activate
-/home/josem/Desktop/juanbot-v2/.venv/bin/python /home/josem/Desktop/juanbot-v2/src/perumec.py
+source /home/mauri/UTABOT/juanbot-v2/.venv/bin/activate
+/home/mauri/UTABOT/juanbot-v2/.venv/bin/python /home/mauri/UTABOT/juanbot-v2/src/juanbot3.py

@@ -48,9 +48,9 @@ kit = ServoKit(channels=16, address=0x40)
 MIN_IMP = 500
 MAX_IMP = 2500
 
-Zancada = 1.5  # cm
-Balanceo = 10  # grados
-Altura = 12  # cm
+Zancada = 3  # cm
+Balanceo = 12  # grados
+Altura = 10  # cm
 Periodo = 1  # seg
 
 Acel_Brazo = 90
@@ -75,10 +75,10 @@ def chau(kit: ServoKit):
 
 pierna_izq = Pierna(6.755, 6.361,
                     kit.servo[4], kit.servo[5], kit.servo[6], kit.servo[7], False, False, False, True,
-                    o4=0, o1=3, o3=5, xoff=0, yoff=0)
+                    o1=10, o3=5, o4=4, xoff=0, yoff=0)
 pierna_der = Pierna(6.648, 6.268,
                     kit.servo[0], kit.servo[1], kit.servo[2], kit.servo[3], False, False, False, False,
-                    o4=-13, o1=3, o3=10, xoff=0, yoff=-0.41)
+                    o1=10, o3=10, o4=-13, xoff=0, yoff=-0.41)
 
 atexit.register(chau, kit)
 
@@ -125,7 +125,6 @@ while True:
                                            p=sin_ramp(t, Pot_Balanceo) * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "empieza_caminar" or estado == "caminando_izq":
-                    Periodo = 0.7
                     estado = "caminando_der"
                     print(estado)
                     for t, t2 in zip(np.linspace(radians(180), radians(360), int(FPS * Periodo)),
@@ -138,7 +137,6 @@ while True:
                                            p=sin_ramp(t, Pot_Balanceo) * Balanceo)
                         dt = clock.tick(FPS) / 1000
                 elif estado == "caminando_der":
-                    Periodo = 0.7
                     estado = "caminando_izq"
                     print(estado)
                     for t, t2 in zip(np.linspace(radians(360), radians(360+180), int(FPS * Periodo)),
@@ -151,7 +149,6 @@ while True:
                                            p=sin_ramp(t, Pot_Balanceo) * Balanceo)
                         dt = clock.tick(FPS) / 1000
             elif hat[1] == 0:
-                Periodo = 1
                 if estado == "empieza_caminar":
                     estado = "parado"
                     print(estado)
