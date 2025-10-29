@@ -18,7 +18,7 @@ joysticks = {}
 
 
 def pygane_event_handle():
-    global estado
+    global estado, joysticks
     # Event processing step.
     # Possible joystick events: JOYAXISMOTION, JOYBALLMOTION, JOYBUTTONDOWN,
     # JOYBUTTONUP, JOYHATMOTION, JOYDEVICEADDED, JOYDEVICEREMOVED
@@ -50,9 +50,10 @@ MIN_IMP = 500
 MAX_IMP = 2500
 
 Zancada = 3  # cm
+Zancada_Giro = 2
 Balanceo = 13  # grados
 Altura = 11  # cm
-Periodo = 1  # seg
+Periodo = 1.5  # segdt = clock.tick(FPS) / 1000
 
 Acel_Brazo = 90
 Pot_Balanceo = 1
@@ -63,7 +64,7 @@ FPS = 30
 dt = 0
 
 brazo_der = [-90, 0]
-brazo_izq = [-90, 0]
+brazo_izq = [90, 0]
 
 estado = "parado"
 
@@ -92,91 +93,88 @@ pierna_der = Pierna(6.648, 6.268,
 atexit.register(chau, kit)
 
 
-def juan():
-    global running, brazo_izq, brazo_der
-    clock_local = pg.time.Clock()
-    dt_local = 1 / FPS
-    while running:
-        for joystick in joysticks.values():
-            axis1 = joystick.get_axis(0)
-            axis2 = joystick.get_axis(1)
-            axis3 = joystick.get_axis(3)
-            axis4 = joystick.get_axis(4)
+def juan(joystick, dt_local):
+    global brazo_izq, brazo_der
 
-            brazo_izq[0] += axis1 * (abs(axis1) > 0.1) * dt_local * Acel_Brazo
-            brazo_izq[1] += axis2 * (abs(axis2) > 0.1) * dt_local * Acel_Brazo
-            brazo_der[0] += axis3 * (abs(axis3) > 0.1) * dt_local * Acel_Brazo
-            brazo_der[1] += axis4 * (abs(axis4) > 0.1) * dt_local * Acel_Brazo
+    axis1 = joystick.get_axis(0)
+    axis2 = joystick.get_axis(1)
+    axis3 = joystick.get_axis(3)
+    axis4 = joystick.get_axis(4)
 
-            brazo_der = np.clip(brazo_der, -90, 90)
-            brazo_izq = np.clip(brazo_izq, -90, 90)
+    brazo_izq[0] += axis1 * (abs(axis1) > 0.1) * dt_local * Acel_Brazo
+    brazo_izq[1] += axis2 * (abs(axis2) > 0.1) * dt_local * Acel_Brazo
+    brazo_der[0] += axis3 * (abs(axis3) > 0.1) * dt_local * Acel_Brazo
+    brazo_der[1] += axis4 * (abs(axis4) > 0.1) * dt_local * Acel_Brazo
 
-            kit.servo[9].angle = 90 + brazo_izq[1]
-            kit.servo[8].angle = 90 + brazo_der[1]
-            kit.servo[11].angle = 90 + brazo_izq[0]
-            kit.servo[10].angle = 90 + brazo_der[0]
-            # dt_local = clock_local.tick(FPS) / 1000
-            time.sleep(dt_local)
+    brazo_der = np.clip(brazo_der, -90, 90)
+    brazo_izq = np.clip(brazo_izq, -90, 90)
+
+    kit.servo[9].angle = 90 + brazo_izq[1]
+    kit.servo[8].angle = 90 - brazo_der[1]
+    kit.servo[11].angle = 90 - brazo_izq[0]
+    kit.servo[10].angle = 90 + brazo_der[0]
 
 
-threading.Thread(target=juan).start()
-
-# while True:
 start_time = time.time()
 
 pierna_der.angulos(0, Altura)
 pierna_izq.angulos(0, Altura)
 time.sleep(1)
+hat = [0, 0]
 
 while running:
     dt = clock.tick(FPS) / 1000
     pygane_event_handle()
     for joystick in joysticks.values():
         hat = joystick.get_hat(0)
+        juan(joystick, dt)
 
         if hat[0] == -1:    # Giro izquierda
             if estado == "parado":
                 estado = "parado"
                 print(estado)
-                for t in np.linspace(0, radians(180), int(FPS * Periodo*2)):
-                    pierna_der.angulos(Zancada * sin(t/2),
+                for t in np.linspace(0, radians(180), int(FPS * Periodo)):
+                    pierna_der.angulos(Zancada_Giro * sin(t/2),
                                        Altura,
                                        p=-sin_ramp(t, Pot_Balanceo) * Balanceo)
-                    pierna_izq.angulos(Zancada * -sin(t/2),
+                    pierna_izq.angulos(Zancada_Giro * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
                     
                 for t in np.linspace(radians(180), 0, int(FPS * Periodo/10)):
-                    pierna_der.angulos(Zancada * sin_ramp(t, Pot_Balanceo),
+                    pierna_der.angulos(Zancada_Giro * sin_ramp(t, Pot_Balanceo),
                                        Altura,
                                        p=-sin_ramp(t, Pot_Balanceo) * Balanceo)
-                    pierna_izq.angulos(Zancada * sin_ramp(t, Pot_Balanceo),
+                    pierna_izq.angulos(Zancada_Giro * sin_ramp(t, Pot_Balanceo),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
-
 
         if hat[0] == 1:    # Giro derecha
             if estado == "parado":
                 estado = "parado"
                 print(estado)
-                for t in np.linspace(0, radians(180), int(FPS * Periodo*2)):
-                    pierna_der.angulos(Zancada * -sin(t/2),
+                for t in np.linspace(0, radians(180), int(FPS * Periodo)):
+                    pierna_der.angulos(Zancada_Giro * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
-                    pierna_izq.angulos(Zancada * sin(t/2),
+                    pierna_izq.angulos(Zancada_Giro * sin(t/2),
                                        Altura,
                                        p=-sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
                     
                 for t in np.linspace(radians(180), 0, int(FPS * Periodo/10)):
-                    pierna_der.angulos(Zancada * -sin_ramp(t, Pot_Balanceo),
+                    pierna_der.angulos(Zancada_Giro * -sin_ramp(t, Pot_Balanceo),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
-                    pierna_izq.angulos(Zancada * -sin_ramp(t, Pot_Balanceo),
+                    pierna_izq.angulos(Zancada_Giro * -sin_ramp(t, Pot_Balanceo),
                                        Altura,
                                        p=-sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
 
         if hat[1] == 1:
@@ -190,6 +188,7 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
             elif estado == "empieza_caminar" or estado == "caminando_izq":
                 estado = "caminando_der"
@@ -202,6 +201,7 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
             elif estado == "caminando_der":
                 estado = "caminando_izq"
@@ -214,6 +214,7 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
         elif hat[1] == 0:
             if estado == "empieza_caminar":
@@ -226,6 +227,7 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
             elif estado == "caminando_der":
                 estado = "parado"
@@ -237,6 +239,7 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
             elif estado == "caminando_izq":
                 estado = "parado"
@@ -248,4 +251,5 @@ while running:
                     pierna_izq.angulos(Zancada * -sin(t/2),
                                        Altura,
                                        p=sin_ramp(t, Pot_Balanceo) * Balanceo)
+                    juan(joystick, dt)
                     dt = clock.tick(FPS) / 1000
