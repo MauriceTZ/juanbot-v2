@@ -69,6 +69,8 @@ hat = [0, 0]
 
 estado = "parado"
 
+contador = 0
+
 Boton_GPIO = 26
 boton = gpiozero.Button(Boton_GPIO, pull_up=True, bounce_time=0.01)
 
@@ -204,6 +206,10 @@ while running:
                 # juan(joystick, dt)
                 dt = clock.tick(FPS) / 1000
         elif estado == "empieza_caminar" or estado == "caminando_izq":
+            if contador > 5:
+                contador = 0
+                hat = [1, 0] ## TODO: girar en el sentido correcto y contar giros y resetear contador para seguir caminando.
+            contador += 1
             estado = "caminando_der"
             print(estado)
             for t, t2 in zip(np.linspace(radians(180), radians(360), int(FPS * Periodo)),
